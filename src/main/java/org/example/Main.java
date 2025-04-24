@@ -6,6 +6,7 @@ public class Main {
     public static void main(String[] args) {
 
         System.out.println("Deneme commitidir 24.04.2025 saat 18.26");
+        System.out.println("Deneme commitidir 24.04.2025 saat 19.46");
 
     }
 }

@@ -156,16 +156,29 @@ public class GameManager {
         if(territories.isEmpty()){
             return false;
         }
-        Player winner = territories.get(0).getOwner();
-        if(winner == null){ return false;}
+        Player potentialWinner = territories.get(0).getOwner();
+        if(potentialWinner == null){ return false;}
         for(Territory territory : territories){
-            if(territory.getOwner() != winner){
+            if(territory.getOwner() != potentialWinner){
                 return false;
             }
 
         }
-        System.out.println("Oyun bitti, kazanan: " + winner.getName());
+        System.out.println("Oyun bitti, kazanan: " + potentialWinner.getName());
         return true;
     }
+    public Player getWinner(){
+        if(territories.isEmpty()){ return null;}
+
+        Player winner = territories.get(0).getOwner();
+        for(Territory territory : territories){
+            if(territory.getOwner() != winner){
+                return null;
+            }
+
+        }
+        return winner;
+    }
+
 
 }

@@ -17,7 +17,8 @@ public class GameManager {
         random = new Random();
         setupDummyPlayers();
         setupTerritories();
-        assignTerritories();
+        TEST_assignTerritories();
+        setupNeighbors();
     }
 
     public static GameManager getInstance() {
@@ -69,16 +70,102 @@ public class GameManager {
         players.get(1).addTerritory(territories.get(3)); // Argentina - Mavi
         territories.get(3).setOwner(players.get(1));
 
-        // Ordu sayısını rastgele atıyoruz
         for (Territory territory : territories) {
             int armyCount = random.nextInt(5) + 1;
             territory.setArmies(armyCount);
         }
     }
 
+    public void TEST_assignTerritories() {
+        Player player1 = players.get(0);
+        Player player2 = players.get(1);
+
+        // TEST MODU - TÜM ÜLKELER KIRMIZIYA VERİLDİ
+        for (Territory territory : territories) {
+            territory.setOwner(player1);
+            player1.addTerritory(territory);
+            territory.setArmies(1);
+        }
+
+        System.out.println("Test modu aktif! Tüm ülkeler Kırmızı'ya verildi.");
+    }
+
+    public void setupNeighbors() {
+        // Venezuela - Brazil - Argentina (Güney Amerika)
+        territories.get(1).addNeighbor(territories.get(2)); // Venezuela - Brazil
+        territories.get(2).addNeighbor(territories.get(1)); // Brazil - Venezuela
+
+        territories.get(1).addNeighbor(territories.get(3)); // Venezuela - Argentina
+        territories.get(3).addNeighbor(territories.get(1)); // Argentina - Venezuela
+
+        territories.get(2).addNeighbor(territories.get(3)); // Brazil - Argentina
+        territories.get(3).addNeighbor(territories.get(2)); // Argentina - Brazil
+
+        // Turkey - Middle East - China (Asya)
+        territories.get(0).addNeighbor(territories.get(4)); // Turkey - Middle East
+        territories.get(4).addNeighbor(territories.get(0)); // Middle East - Turkey
+
+        territories.get(4).addNeighbor(territories.get(5)); // Middle East - China
+        territories.get(5).addNeighbor(territories.get(4)); // China - Middle East
+    }
+
     public void addArmyToTerritory(Territory territory) {
         int newArmyCount = territory.getArmies() + 1;
         territory.setArmies(newArmyCount);
-        System.out.println("Ordu eklendi: " + territory.getTerritoryName() + " - Yeni Ordu Sayısı: " + newArmyCount);
     }
+
+    public void attack(Territory attacker, Territory defender) {
+        if (attacker.getArmies() < 2) {
+            System.out.println("Saldırı için yeterli ordu yok.");
+            return;
+        }
+
+        int attackerRoll = random.nextInt(6) + 1;
+        int defenderRoll = random.nextInt(6) + 1;
+
+        System.out.println("Saldırı: " + attacker.getTerritoryName() + " (Zar: " + attackerRoll + ") --> " +
+                defender.getTerritoryName() + " (Zar: " + defenderRoll + ")");
+
+        if (attackerRoll > defenderRoll) {
+            // Savunan kaybediyor
+            defender.setArmies(defender.getArmies() - 1);
+            System.out.println(defender.getTerritoryName() + " kaybetti! Yeni ordu sayısı: " + defender.getArmies());
+
+            // Eğer savunan ülkenin ordusu 0'a inerse, ele geçirilir
+            if (defender.getArmies() <= 0) {
+                Player attackerOwner = attacker.getOwner();
+                defender.setOwner(attackerOwner);
+                defender.setArmies(1);  // Ele geçirilen ülke 1 ordu ile başlar
+
+                System.out.println(defender.getTerritoryName() + " ele geçirildi!");
+                System.out.println(defender.getTerritoryName() + " artık " + attackerOwner.getName() + " oyuncusuna ait.");
+            }
+
+        } else {
+            // Saldıran kaybediyor
+            attacker.setArmies(attacker.getArmies() - 1);
+            System.out.println(attacker.getTerritoryName() + " kaybetti! Yeni ordu sayısı: " + attacker.getArmies());
+        }
+
+        // Güncel durumları yazdır
+        System.out.println("Durum: " + attacker.getTerritoryName() + " Ordu: " + attacker.getArmies() +
+                " | " + defender.getTerritoryName() + " Ordu: " + defender.getArmies());
+    }
+
+    public boolean isGameOver(){
+        if(territories.isEmpty()){
+            return false;
+        }
+        Player winner = territories.get(0).getOwner();
+        if(winner == null){ return false;}
+        for(Territory territory : territories){
+            if(territory.getOwner() != winner){
+                return false;
+            }
+
+        }
+        System.out.println("Oyun bitti, kazanan: " + winner.getName());
+        return true;
+    }
+
 }

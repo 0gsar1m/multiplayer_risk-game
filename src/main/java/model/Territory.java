@@ -5,47 +5,31 @@ import java.util.List;
 
 public class Territory {
     private String territoryName;
-    private Player owner;
-    private int armies;
-    private List<Territory> neighborTerritories;
     private double x;
     private double y;
     private String continent;
+    private Player owner;
+    private int armies;
+    private List<Territory> neighbors;
 
     public Territory(String territoryName, double x, double y, String continent) {
         this.territoryName = territoryName;
         this.x = x;
         this.y = y;
         this.continent = continent;
-        this.armies = 1; //default start
-        this.neighborTerritories = new ArrayList<>();
+        this.armies = 1;
+        this.neighbors = new ArrayList<>();
     }
 
-    public void setOwner(Player owner){
-        this.owner = owner;
-    }
-
-    public Player getOwner(){
-        return owner;
-    }
-
-    public void addNeighbour(Territory neighbor){
-        this.neighborTerritories.add(neighbor);
+    public void addNeighbor(Territory neighbor) {
+        neighbors.add(neighbor);
     }
 
     public List<Territory> getNeighbors() {
-        return neighborTerritories;
+        return neighbors;
     }
 
-    public int getArmies() {
-        return armies;
-    }
-
-    public void setArmies(int armies) {
-        this.armies = armies;
-    }
-
-    public String getTerritoryName(){
+    public String getTerritoryName() {
         return territoryName;
     }
 
@@ -59,5 +43,21 @@ public class Territory {
 
     public String getContinent() {
         return continent;
+    }
+
+    public Player getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Player owner) {
+        this.owner = owner;
+    }
+
+    public int getArmies() {
+        return armies;
+    }
+
+    public void setArmies(int armies) {
+        this.armies = armies;
     }
 }

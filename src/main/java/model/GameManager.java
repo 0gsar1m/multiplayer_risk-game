@@ -157,28 +157,30 @@ public class GameManager {
     }
 
     public void setupTerritories() {
-        territories.add(new Territory("Turkey", 773, 421, "Asia"));
         territories.add(new Territory("Venezuela", 318, 615, "South America"));
         territories.add(new Territory("Brazil", 420, 692, "South America"));
         territories.add(new Territory("Argentina", 368, 794, "South America"));
-        territories.add(new Territory("Middle East", 773, 421, "Asia"));
-        territories.add(new Territory("China", 996, 370, "Asia"));
     }
 
     public void setupNeighbors() {
-        Territory venezuela = territories.get(1);
-        Territory brazil = territories.get(2);
-        Territory argentina = territories.get(3);
+        // Venezuela - Brazil - Argentina (Güney Amerika)
+        Territory venezuela = territories.get(0);
+        Territory brazil = territories.get(1);
+        Territory argentina = territories.get(2);
 
+        // Venezuela komşuları
         venezuela.addNeighbor(brazil);
         venezuela.addNeighbor(argentina);
 
+        // Brazil komşuları
         brazil.addNeighbor(venezuela);
         brazil.addNeighbor(argentina);
 
+        // Argentina komşuları
         argentina.addNeighbor(venezuela);
         argentina.addNeighbor(brazil);
     }
+
 
     public void setupDummyPlayers() {
         Player player1 = new Player("Kırmızı");
@@ -188,22 +190,23 @@ public class GameManager {
     }
 
     public void assignTerritories() {
+        // Kırmızı oyuncuya Venezuela veriliyor
         players.get(0).addTerritory(territories.get(0));
         territories.get(0).setOwner(players.get(0));
 
-        players.get(0).addTerritory(territories.get(1));
-        territories.get(1).setOwner(players.get(0));
+        // Mavi oyuncuya Brazil ve Argentina veriliyor
+        players.get(1).addTerritory(territories.get(1));
+        territories.get(1).setOwner(players.get(1));
 
         players.get(1).addTerritory(territories.get(2));
         territories.get(2).setOwner(players.get(1));
 
-        players.get(1).addTerritory(territories.get(3));
-        territories.get(3).setOwner(players.get(1));
-
+        // Ordu sayıları belirleniyor (1-5 arası rastgele)
         for (Territory territory : territories) {
             territory.setArmies(random.nextInt(5) + 1);
         }
     }
+
 
     public void startReinforcementPhase(Player player) {
         int ownedTerritories = player.getOwnedTerritories().size();

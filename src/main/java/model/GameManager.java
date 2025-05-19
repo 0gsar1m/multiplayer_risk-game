@@ -13,8 +13,10 @@ public class GameManager {
     private Random random;
     private int reinforcementArmy = 0;
     private int tempReinforcement = 0;
-
-
+    private boolean isPostAttackReinforcePhase = false;
+    private Territory targetTerritory;
+    private Territory selectedTerritory;
+    private boolean isReinforcementPhase = false;
 
     private GameManager() {
         territories = new ArrayList<>();
@@ -24,6 +26,29 @@ public class GameManager {
         setupTerritories();
         assignTerritories();
         setupNeighbors();
+    }
+    private PostAttackReinforceListener postAttackReinforceListener;
+
+
+    public void setPostAttackReinforceListener(PostAttackReinforceListener listener) {
+        this.postAttackReinforceListener = listener;
+    }
+
+    public void postAttackReinforce(Territory attacker, Territory conquered) {
+        if (attacker.getArmies() <= 1) {
+            System.out.println("Takviye yapılacak yeterli ordu yok.");
+            isPostAttackReinforcePhase = false;
+            isReinforcementPhase = true; // Saldırı sonrası takviye yapılmadı, doğrudan sıradaki oyuncunun takviyesi
+            return;
+        }
+
+        int maxReinforce = attacker.getArmies() - 1;
+        System.out.println("Takviye aşaması: " + attacker.getTerritoryName() + " ile " + conquered.getTerritoryName());
+        System.out.println(attacker.getTerritoryName() + " ülkesinden " + conquered.getTerritoryName() + " ülkesine " + maxReinforce + " ordu takviyesi yapılabilir.");
+
+        isPostAttackReinforcePhase = true;
+        selectedTerritory = attacker;
+        targetTerritory = conquered;
     }
 
 
@@ -88,26 +113,6 @@ public class GameManager {
         System.out.println("Saldırı tamamlandı.");
     }
 
-
-    /**
-     * Saldırı sonrası takviye aşaması
-     */
-    public void postAttackReinforce(Territory attacker, Territory conquered) {
-        if (attacker.getArmies() <= 1) {
-            System.out.println("Takviye yapılacak yeterli ordu yok.");
-            return;
-        }
-
-        int maxReinforce = attacker.getArmies() - 1;
-        System.out.println("Takviye aşaması: " + attacker.getTerritoryName() + " ile " + conquered.getTerritoryName());
-        System.out.println(attacker.getTerritoryName() + " ülkesinden " + conquered.getTerritoryName() + " ülkesine " + maxReinforce + " ordu takviyesi yapılabilir.");
-
-        // GameApp'teki ilgili metodu tetikle
-        GameApp.getInstance().handlePostAttackReinforce(attacker, conquered);
-    }
-
-
-
     /**
      * Kullanıcıdan girilen asker sayısı kadar takviye yapar.
      */
@@ -132,8 +137,6 @@ public class GameManager {
         }
         return rolls;
     }
-
-
 
 
     public static GameManager getInstance() {
@@ -218,10 +221,12 @@ public class GameManager {
         tempReinforcement = reinforcementArmy;
         System.out.println(player.getName() + " oyuncusu " + tempReinforcement + " ordu alacak.");
     }
+
     /**
      * Saldırı sonrası takviye aşamasında, iki ülke arasında takviye yapılmasını sağlar.
-     * @param from Takviye yapılacak kaynak ülke
-     * @param to Takviye yapılacak hedef ülke
+     *
+     * @param from   Takviye yapılacak kaynak ülke
+     * @param to     Takviye yapılacak hedef ülke
      * @param armies Gönderilecek ordu sayısı
      */
     public void reinforceBetweenTerritories(Territory from, Territory to, int armies) {
@@ -242,8 +247,6 @@ public class GameManager {
     }
 
 
-
-
     public void reinforceTerritory(Territory territory, int armies) {
         if (armies <= 0 || armies > tempReinforcement) {
             System.out.println("Hatalı ordu sayısı: " + armies);
@@ -255,6 +258,7 @@ public class GameManager {
 
         System.out.println(territory.getTerritoryName() + " ülkesine " + armies + " ordu eklendi. Kalan takviye: " + tempReinforcement);
     }
+
     /**
      * Oyunun bitip bitmediğini kontrol eder.
      */

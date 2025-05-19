@@ -101,7 +101,11 @@ public class GameManager {
         int maxReinforce = attacker.getArmies() - 1;
         System.out.println("Takviye aşaması: " + attacker.getTerritoryName() + " ile " + conquered.getTerritoryName());
         System.out.println(attacker.getTerritoryName() + " ülkesinden " + conquered.getTerritoryName() + " ülkesine " + maxReinforce + " ordu takviyesi yapılabilir.");
+
+        // GameApp'teki ilgili metodu tetikle
+        GameApp.getInstance().handlePostAttackReinforce(attacker, conquered);
     }
+
 
 
     /**

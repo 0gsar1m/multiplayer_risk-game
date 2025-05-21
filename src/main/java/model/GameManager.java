@@ -26,7 +26,9 @@ public class GameManager {
         setupTerritories();
         assignTerritories();
         setupNeighbors();
+        startReinforcementPhase(getCurrentPlayer()); // Takviye başlasın
     }
+
     private PostAttackReinforceListener postAttackReinforceListener;
 
 
@@ -164,13 +166,21 @@ public class GameManager {
     }
 
     public void setupTerritories() {
-        territories.add(new Territory("Venezuela", 318, 615, "South America"));
+        territories.clear(); // Önceki ülkeleri temizle
+        /*territories.add(new Territory("Venezuela", 318, 615, "South America"));
         territories.add(new Territory("Brazil", 420, 692, "South America"));
-        territories.add(new Territory("Argentina", 368, 794, "South America"));
+        territories.add(new Territory("Argentina", 368, 794, "South America"));*/
+        territories.add(new Territory("North Africa", 603, 501, "Africa"));
+        territories.add(new Territory("Egypt", 736, 510, "Africa"));
+        territories.add(new Territory("Congo", 695, 620, "Africa"));
+        territories.add(new Territory("East Africa", 757, 638, "Africa"));
+        territories.add(new Territory("South Africa", 720, 730, "Africa"));
+        territories.add(new Territory("Madagascar", 814, 704, "Africa"));
     }
 
+
     public void setupNeighbors() {
-        // Venezuela - Brazil - Argentina (Güney Amerika)
+        /*// Venezuela - Brazil - Argentina (Güney Amerika)
         Territory venezuela = territories.get(0);
         Territory brazil = territories.get(1);
         Territory argentina = territories.get(2);
@@ -185,9 +195,36 @@ public class GameManager {
 
         // Argentina komşuları
         argentina.addNeighbor(venezuela);
-        argentina.addNeighbor(brazil);
-    }
+        argentina.addNeighbor(brazil);*/
+        Territory northAfrica = getTerritoryByName("North Africa");
+        Territory egypt = getTerritoryByName("Egypt");
+        Territory congo = getTerritoryByName("Congo");
+        Territory eastAfrica = getTerritoryByName("East Africa");
+        Territory southAfrica = getTerritoryByName("South Africa");
+        Territory madagascar = getTerritoryByName("Madagascar");
 
+        northAfrica.addNeighbor(egypt);
+        northAfrica.addNeighbor(congo);
+
+        egypt.addNeighbor(northAfrica);
+        egypt.addNeighbor(eastAfrica);
+
+        congo.addNeighbor(northAfrica);
+        congo.addNeighbor(eastAfrica);
+        congo.addNeighbor(southAfrica);
+
+        eastAfrica.addNeighbor(egypt);
+        eastAfrica.addNeighbor(congo);
+        eastAfrica.addNeighbor(southAfrica);
+        eastAfrica.addNeighbor(madagascar);
+
+        southAfrica.addNeighbor(congo);
+        southAfrica.addNeighbor(eastAfrica);
+        southAfrica.addNeighbor(madagascar);
+
+        madagascar.addNeighbor(eastAfrica);
+        madagascar.addNeighbor(southAfrica);
+    }
 
     public void setupDummyPlayers() {
         Player player1 = new Player("Kırmızı");
@@ -196,7 +233,7 @@ public class GameManager {
         players.add(player2);
     }
 
-    public void assignTerritories() {
+    /*public void assignTerritories() {
         // Kırmızı oyuncuya Venezuela veriliyor
         players.get(0).addTerritory(territories.get(0));
         territories.get(0).setOwner(players.get(0));
@@ -212,7 +249,39 @@ public class GameManager {
         for (Territory territory : territories) {
             territory.setArmies(random.nextInt(5) + 1);
         }
+    }*/
+    public void assignTerritories() {
+        // Temiz başlangıç
+        for (Player player : players) {
+            player.getOwnedTerritories().clear();
+        }
+
+        // Kontrollü atama
+        Player red = players.get(0);
+        Player blue = players.get(1);
+
+        // İlk 3 ülkeyi kırmızıya
+        for (int i = 0; i < 3 && i < territories.size(); i++) {
+            Territory t = territories.get(i);
+            t.setOwner(red);
+            red.addTerritory(t);
+            t.setArmies(random.nextInt(3) + 1);
+        }
+
+        // Sonraki 3 ülkeyi maviye
+        for (int i = 3; i < 6 && i < territories.size(); i++) {
+            Territory t = territories.get(i);
+            t.setOwner(blue);
+            blue.addTerritory(t);
+            t.setArmies(random.nextInt(3) + 1);
+        }
+
+        System.out.println("Ülkeler başarıyla dağıtıldı:");
+        for (Player p : players) {
+            System.out.println(p.getName() + " -> " + p.getOwnedTerritories().size() + " ülke");
+        }
     }
+
 
 
     public void startReinforcementPhase(Player player) {
@@ -279,6 +348,15 @@ public class GameManager {
     public Player getWinner() {
         if (isGameOver()) {
             return territories.get(0).getOwner();
+        }
+        return null;
+    }
+
+    private Territory getTerritoryByName(String name) {
+        for (Territory territory : territories) {
+            if (territory.getTerritoryName().equals(name)) {
+                return territory;
+            }
         }
         return null;
     }

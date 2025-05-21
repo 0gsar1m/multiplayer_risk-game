@@ -39,35 +39,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
     private Button endAttackButton;
 
     /**
-     * Saldırı sonrası takviye işlemi.
-     */
-    /*private void handlePostAttackReinforce(Territory fromTerritory, Territory toTerritory) {
-        if (isAttackPhase || isReinforcementPhase) {
-            System.out.println("Saldırı veya takviye aşamasında post-attack reinforcement yapılamaz.");
-            return;
-        }
-
-        Player currentPlayer = gameManager.getCurrentPlayer();
-
-        if (fromTerritory.getOwner() != currentPlayer || toTerritory.getOwner() != currentPlayer) {
-            System.out.println("Sadece kendi ülkeleriniz arasında takviye yapabilirsiniz.");
-            return;
-        }
-
-        if (fromTerritory.getArmies() <= 1) {
-            System.out.println(fromTerritory.getTerritoryName() + " ülkesinde yeterli ordu yok.");
-            return;
-        }
-
-        selectedTerritory = fromTerritory;
-        targetTerritory = toTerritory;
-
-        postAttackButton.setDisable(false);
-        postAttackInput.setDisable(false);
-
-        System.out.println(fromTerritory.getTerritoryName() + " ülkesinden " + toTerritory.getTerritoryName() + " ülkesine takviye yapabilirsiniz.");
-    }*/
-    /**
      * Saldırı sonrası takviye aşamasının başlatılması.
      */
     @Override
@@ -75,6 +46,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         System.out.println("Saldırı sonrası takviye işlemi başlatıldı.");
         handlePostAttackReinforce(attacker, conquered);
     }
+
     private void handlePostAttackReinforce(Territory from, Territory to) {
         if (!isPostAttackReinforcePhase) {
             System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
@@ -264,7 +236,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             });
 
 
-
             content.getChildren().addAll(circle, armyText);
         }
 
@@ -289,6 +260,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      * Takviye aşaması: Oyuncu, sahip olduğu ülkelere orduları dağıtır.
      */
     private void handleReinforcementPhase(Territory territory, Text armyText) {
+        System.out.println("==> handleReinforcementPhase çağrıldı");
         Player currentPlayer = gameManager.getCurrentPlayer();
 
         if (territory.getOwner() != currentPlayer) {
@@ -424,19 +396,23 @@ public class GameApp extends Application implements PostAttackReinforceListener 
 
 
     private void handleAttackPhase(Territory territory) {
+        System.out.println("==> handleAttackPhase çağrıldı");
         Player currentPlayer = gameManager.getCurrentPlayer();
 
+        // Eğer henüz saldıran ülke seçilmemişse
         if (selectedTerritory == null) {
-            if (territory.getOwner() == currentPlayer && territory.getArmies() > 1) {
+            if (territory.getOwner() == currentPlayer && canTerritoryAttack(territory, currentPlayer)) {
                 selectedTerritory = territory;
                 highlightNeighbors(selectedTerritory);
                 System.out.println("Saldıran ülke seçildi: " + selectedTerritory.getTerritoryName());
             } else {
-                System.out.println("Saldırı yapabileceğiniz ülkeyi seçin.");
+                System.out.println("Bu ülke ile saldırı yapamazsınız (ya size ait değil ya da uygun değil).");
             }
         }
-        // Eğer saldıran ülke seçilmişse
+
+        // Saldıran ülke zaten seçilmişse
         else {
+            // Tıklanan ülke düşman ve komşu ise saldırı başlatılır
             if (territory.getOwner() != currentPlayer && selectedTerritory.getNeighbors().contains(territory)) {
                 System.out.println("Saldırı başlatılıyor...");
                 gameManager.attack(selectedTerritory, territory);
@@ -444,28 +420,44 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 updateArmyText();
                 resetCircleColors();
 
-                // Eğer saldıran ülkenin ordusu 1'e düştüyse saldırı aşaması sona erer
+                // Eğer işgal gerçekleşmişse (ülkenin sahibi artık currentPlayer ise)
+                if (territory.getOwner() == currentPlayer) {
+                    System.out.println("İşgal gerçekleşti: " + territory.getTerritoryName());
+                    gameManager.postAttackReinforce(selectedTerritory, territory);
+
+                    selectedTerritory = territory;
+                    highlightNeighbors(selectedTerritory);
+
+                    if (canTerritoryAttack(selectedTerritory, currentPlayer)) {
+                        System.out.println("Yeni fethedilen ülke ile saldırıya devam edilebilir.");
+                        isAttackPhase = true;
+                        isReinforcementPhase = false;
+                        isPostAttackReinforcePhase = false;
+                        return;
+                    } else {
+                        System.out.println("Yeni fethedilen ülke ile saldırı yapılamaz. Takviye aşamasına geçiliyor.");
+                        selectedTerritory = null;
+                        isAttackPhase = false;
+                        isPostAttackReinforcePhase = true;
+                        return;
+                    }
+                }
+
+                // Eğer işgal olmadıysa ve saldıran ülkenin ordusu 1'e düştüyse
                 if (selectedTerritory.getArmies() <= 1) {
                     System.out.println("Saldıran ülkenin ordusu 1'e düştü. Saldırı sona eriyor.");
                     handleEndAttackPhase();
                     return;
                 }
 
-                // Eğer işgal gerçekleşmişse, saldırı sonrası takviye aşamasına geç
-                if (territory.getOwner() == currentPlayer) {
-                    System.out.println("Takviye aşaması: " + selectedTerritory.getTerritoryName() + " ile " + territory.getTerritoryName());
-                    gameManager.postAttackReinforce(selectedTerritory, territory);
-                    isAttackPhase = false;
-                    isPostAttackReinforcePhase = true;
-                    return;
-                }
-
+                // Saldırı başarısız ama saldıran ülke hala saldırabilir
                 selectedTerritory = null;
             } else {
                 System.out.println("Hedef ülke geçersiz veya saldırı yapılamaz.");
             }
         }
     }
+
 
 
     private void handleEndAttackPhase() {
@@ -544,15 +536,24 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      * Saldıran ülkenin komşu düşmanlarını sarı renkle vurgular.
      */
     private void highlightNeighbors(Territory selected) {
+        Player currentPlayer = gameManager.getCurrentPlayer(); // Mevcut oyuncuyu al
+
         for (Territory neighbor : selected.getNeighbors()) {
+            System.out.println("Komşu: " + neighbor.getTerritoryName() +
+                    " | Sahibi: " + (neighbor.getOwner() != null ? neighbor.getOwner().getName() : "null") +
+                    " | Mevcut oyuncu: " + currentPlayer.getName());
+
             if (neighbor.getOwner() != selected.getOwner()) {
                 Circle neighborCircle = getCircleByTerritory(neighbor);
                 if (neighborCircle != null) {
                     neighborCircle.setFill(Color.YELLOW);
+                } else {
+                    System.out.println("⚠️ Circle bulunamadı: " + neighbor.getTerritoryName());
                 }
             }
         }
     }
+
 
     /**
      * Ordu sayısını ekrandaki Text nesnelerinde günceller.
@@ -590,5 +591,15 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         return null;
     }
 
+    /**
+     * Verilen ülke saldırı yapabilir mi?
+     * - En az 2 orduya sahip olmalı (1 ordu bırakmak zorunda)
+     * - En az bir düşman komşusu olmalı
+     */
+    private boolean canTerritoryAttack(Territory t, Player p) {
+        if (t.getArmies() <= 1) return false;
 
+        return t.getNeighbors().stream()
+                .anyMatch(n -> n.getOwner() != p);
+    }
 }

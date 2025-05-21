@@ -99,8 +99,11 @@ public class GameManager {
 
                 if (defender.getArmies() <= 0) {
                     defender.setOwner(attacker.getOwner());
-                    defender.setArmies(1);
-                    attacker.setArmies(attacker.getArmies() - 1);
+
+                    int movingArmies = attacker.getArmies() - 1;
+                    attacker.setArmies(1);
+                    defender.setArmies(movingArmies);
+
                     System.out.println(defender.getTerritoryName() + " ele geçirildi!");
                     postAttackReinforce(attacker, defender);
                     return;

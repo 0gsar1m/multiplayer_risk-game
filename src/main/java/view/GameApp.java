@@ -19,13 +19,10 @@ import model.PostAttackReinforceListener;
 import model.Territory;
 
 public class GameApp extends Application implements PostAttackReinforceListener {
-
     private GameManager gameManager;
     private Text turnLabel;
     private Label reinforcementLabel;
     private TextField armyInput;
-    private TextField postAttackInput;
-    private Button postAttackButton;
     private Pane content;
     private Territory selectedTerritory = null;
     private Territory lastAttacker = null;
@@ -37,6 +34,14 @@ public class GameApp extends Application implements PostAttackReinforceListener 
     private boolean isPostAttackReinforcePhase = false;
     private Territory targetTerritory = null;
     private Button endAttackButton;
+    private boolean mustReinforceAfterConquest = false;
+
+    private Button plusButton;
+    private Button minusButton;
+    private Button confirmMoveButton;
+    private Label moveLabel;
+
+    private int armiesToMove = 1;
 
     /**
      * Saldırı sonrası takviye aşamasının başlatılması.
@@ -48,6 +53,9 @@ public class GameApp extends Application implements PostAttackReinforceListener 
     }
 
     private void handlePostAttackReinforce(Territory from, Territory to) {
+        System.out.println("🧩 handlePostAttackReinforce çağrıldı");
+        System.out.println("🧩 from: " + (from != null ? from.getTerritoryName() : "null"));
+        System.out.println("🧩 to: " + (to != null ? to.getTerritoryName() : "null"));
         if (!isPostAttackReinforcePhase) {
             System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
             return;
@@ -71,61 +79,64 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         selectedTerritory = from;
         targetTerritory = to;
 
-        postAttackButton.setDisable(false);
-        postAttackInput.setDisable(false);
+        System.out.println("✅ selectedTerritory: " + selectedTerritory.getTerritoryName());
+        System.out.println("✅ targetTerritory: " + targetTerritory.getTerritoryName());
 
-        System.out.println(from.getTerritoryName() + " ülkesinden " + to.getTerritoryName() + " ülkesine takviye yapabilirsiniz.");
+        enablePostAttackControls();
+
+        System.out.println("🟢 " + from.getTerritoryName() + " ülkesinden " + to.getTerritoryName() + " ülkesine takviye yapabilirsiniz.");
     }
 
-    private void executePostAttackReinforce(Territory from, Territory to) {
-        if (!isPostAttackReinforcePhase) {
-            System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
-            return;
-        }
 
-        if (from == null || to == null) {
-            System.out.println("Takviye yapılacak ülkeler seçilmedi.");
-            return;
-        }
-
-        try {
-            int armiesToSend = Integer.parseInt(postAttackInput.getText());
-
-            if (armiesToSend < 1 || armiesToSend >= from.getArmies()) {
-                System.out.println("Takviye için geçersiz sayı.");
-                return;
-            }
-
-            gameManager.reinforceBetweenTerritories(from, to, armiesToSend);
-
-            updateArmyText();
-            resetCircleColors();
-
-            selectedTerritory = null;
-            targetTerritory = null;
-
-            postAttackInput.clear();
-            postAttackInput.setDisable(true);
-            postAttackButton.setDisable(true);
-
-            // Saldırı sonrası takviye aşaması sona erdi
-            isPostAttackReinforcePhase = false;
-
-            // Mavi oyuncunun takviye aşamasına geçiş
-            gameManager.nextTurn();
-            Player nextPlayer = gameManager.getCurrentPlayer();
-            turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
-            reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
-            armyInput.setDisable(false);
-            armyInput.clear();
-
-            isReinforcementPhase = true; // Mavi oyuncunun takviye aşaması başlıyor
-            System.out.println(nextPlayer.getName() + " oyuncusu takviye aşamasında.");
-
-        } catch (NumberFormatException ex) {
-            System.out.println("Geçerli bir sayı girin.");
-        }
-    }
+//    private void executePostAttackReinforce(Territory from, Territory to) {
+//        if (!isPostAttackReinforcePhase) {
+//            System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
+//            return;
+//        }
+//
+//        if (from == null || to == null) {
+//            System.out.println("Takviye yapılacak ülkeler seçilmedi.");
+//            return;
+//        }
+//
+//        try {
+//            int armiesToSend = Integer.parseInt(postAttackInput.getText());
+//
+//            if (armiesToSend < 1 || armiesToSend >= from.getArmies()) {
+//                System.out.println("Takviye için geçersiz sayı.");
+//                return;
+//            }
+//
+//            gameManager.reinforceBetweenTerritories(from, to, armiesToSend);
+//
+//            updateArmyText();
+//            resetCircleColors();
+//
+//            selectedTerritory = null;
+//            targetTerritory = null;
+//
+//            postAttackInput.clear();
+//            postAttackInput.setDisable(true);
+//            postAttackButton.setDisable(true);
+//
+//            // Saldırı sonrası takviye aşaması sona erdi
+//            isPostAttackReinforcePhase = false;
+//
+//            // Mavi oyuncunun takviye aşamasına geçiş
+//            gameManager.nextTurn();
+//            Player nextPlayer = gameManager.getCurrentPlayer();
+//            turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
+//            reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
+//            armyInput.setDisable(false);
+//            armyInput.clear();
+//
+//            isReinforcementPhase = true; // Mavi oyuncunun takviye aşaması başlıyor
+//            System.out.println(nextPlayer.getName() + " oyuncusu takviye aşamasında.");
+//
+//        } catch (NumberFormatException ex) {
+//            System.out.println("Geçerli bir sayı girin.");
+//        }
+//    }
 
 
     @Override
@@ -158,18 +169,33 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         armyInput.setLayoutY(50);
         content.getChildren().add(armyInput);
 
-        postAttackInput = new TextField();
-        postAttackInput.setPromptText("Takviye sayısı girin");
-        postAttackInput.setLayoutX(10);
-        postAttackInput.setLayoutY(110);
-        postAttackInput.setDisable(true);
-        content.getChildren().add(postAttackInput);
+        // + - butonları ve taşıma label'ı
+        moveLabel = new Label("Taşınacak Ordu: 1");
+        moveLabel.setLayoutX(10);
+        moveLabel.setLayoutY(110);
+        moveLabel.setVisible(false);
+        content.getChildren().add(moveLabel);
 
-        postAttackButton = new Button("Takviye Yap");
-        postAttackButton.setLayoutX(150);
-        postAttackButton.setLayoutY(110);
-        postAttackButton.setDisable(true);
-        content.getChildren().add(postAttackButton);
+        plusButton = new Button("+");
+        plusButton.setLayoutX(150);
+        plusButton.setLayoutY(110);
+        plusButton.setDisable(true);
+        plusButton.setVisible(false);
+        content.getChildren().add(plusButton);
+
+        minusButton = new Button("-");
+        minusButton.setLayoutX(180);
+        minusButton.setLayoutY(110);
+        minusButton.setDisable(true);
+        minusButton.setVisible(false);
+        content.getChildren().add(minusButton);
+
+        confirmMoveButton = new Button("Onayla");
+        confirmMoveButton.setLayoutX(220);
+        confirmMoveButton.setLayoutY(110);
+        confirmMoveButton.setDisable(true);
+        confirmMoveButton.setVisible(false);
+        content.getChildren().add(confirmMoveButton);
 
         Player currentPlayer = gameManager.getCurrentPlayer();
         // Oyuncunun sadece 1 ülkesi varsa takviye yapamaz
@@ -186,14 +212,14 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
         }
 
-        // Burada postAttackButton'un aksiyonunu tanımlıyoruz
-        postAttackButton.setOnAction(event -> {
-            if (selectedTerritory != null && targetTerritory != null) {
-                executePostAttackReinforce(selectedTerritory, targetTerritory);
-            } else {
-                System.out.println("Takviye yapılacak hedef ülke seçilmedi veya geçersiz seçim.");
-            }
-        });
+//        // Burada postAttackButton'un aksiyonunu tanımlıyoruz
+//        postAttackButton.setOnAction(event -> {
+//            if (selectedTerritory != null && targetTerritory != null) {
+//                executePostAttackReinforce(selectedTerritory, targetTerritory);
+//            } else {
+//                System.out.println("Takviye yapılacak hedef ülke seçilmedi veya geçersiz seçim.");
+//            }
+//        });
         // Saldırıyı Bitir Butonu
         endAttackButton = new Button("Saldırıyı Bitir");
         endAttackButton.setLayoutX(300);
@@ -239,14 +265,74 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             content.getChildren().addAll(circle, armyText);
         }
 
-        // Buton işlemi
-        postAttackButton.setOnAction(event -> {
-            if (selectedTerritory != null && targetTerritory != null) {
-                executePostAttackReinforce(selectedTerritory, targetTerritory);
-            } else {
-                System.out.println("Takviye yapılacak hedef ülke seçilmedi veya geçersiz seçim.");
+        plusButton.setOnAction(e -> {
+            if (selectedTerritory != null) {
+                int maxMove = selectedTerritory.getArmies() - 1;
+                if (armiesToMove < maxMove) {
+                    armiesToMove++;
+                    moveLabel.setText("Taşınacak Ordu: " + armiesToMove);
+                }
             }
         });
+
+        minusButton.setOnAction(e -> {
+            if (armiesToMove > 1) {
+                armiesToMove--;
+                moveLabel.setText("Taşınacak Ordu: " + armiesToMove);
+            }
+        });
+
+
+        confirmMoveButton.setOnAction(e -> {
+            System.out.println("🎯 Onayla butonuna basıldı");
+
+            if (selectedTerritory != null && targetTerritory != null) {
+                System.out.println("Seçilen kaynak: " + selectedTerritory.getTerritoryName() + " (" + selectedTerritory.getArmies() + " ordu)");
+                System.out.println("Hedef ülke: " + targetTerritory.getTerritoryName() + " (" + targetTerritory.getArmies() + " ordu)");
+                System.out.println("Taşınacak ordu: " + armiesToMove);
+
+                gameManager.reinforceBetweenTerritories(selectedTerritory, targetTerritory, armiesToMove);
+
+                System.out.println("✅ Takviye işlemi GameManager üzerinden çağrıldı.");
+
+                updateArmyText();
+                resetCircleColors();
+                disablePostAttackControls();
+
+                mustReinforceAfterConquest = false;
+
+                selectedTerritory = null;
+                targetTerritory = null;
+                armiesToMove = 1;
+
+                // 🧠 Şimdi sıradaki hamle: tekrar saldırabilir mi?
+                if (hasAnyAttackCapableTerritory(gameManager.getCurrentPlayer())) {
+                    System.out.println("🔁 Saldırıya devam edilebilir. Ülke seçimi bekleniyor...");
+                    promptAttackStartSelection();  // saldırı fazına geri dön
+                    isReinforcementPhase = false;
+                    isAttackPhase = true;
+                } else {
+                    // Eğer saldıracak ülke yoksa sıradaki oyuncuya geç
+                    gameManager.nextTurn();
+                    Player nextPlayer = gameManager.getCurrentPlayer();
+                    gameManager.startReinforcementPhase(nextPlayer);
+
+                    System.out.println("🛑 Saldırı bitti. Yeni oyuncu: " + nextPlayer.getName());
+
+                    turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
+                    reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
+                    armyInput.setDisable(false);
+                    isReinforcementPhase = true;
+                    isAttackPhase = false;
+                }
+
+            } else {
+                System.out.println("❌ selectedTerritory veya targetTerritory null!");
+            }
+        });
+
+
+
 
 
         StackPane root = new StackPane(mapView, content);
@@ -284,9 +370,15 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             // Eğer kalan takviye hakkı 0 ise saldırı aşamasına geç
             if (gameManager.getTempReinforcement() == 0) {
                 isReinforcementPhase = false;
-                isAttackPhase = true;
-                turnLabel.setText("Saldırı Aşaması - " + currentPlayer.getName());
-                System.out.println("Saldırı aşamasına geçildi.");
+
+                currentPlayer = gameManager.getCurrentPlayer();
+
+                if (!hasAnyAttackCapableTerritory(currentPlayer)) {
+                    System.out.println("Saldırı yapabilecek ülke yok, sıra geçiyor.");
+                    handleEndAttackPhase();
+                } else {
+                    promptAttackStartSelection();
+                }
             }
 
         } catch (NumberFormatException ex) {
@@ -303,9 +395,9 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         selectedTerritory = null;
         targetTerritory = null;
 
-        postAttackInput.clear();
-        postAttackInput.setDisable(true);
-        postAttackButton.setDisable(true);
+//        postAttackInput.clear();
+//        postAttackInput.setDisable(true);
+//        postAttackButton.setDisable(true);
         endAttackButton.setDisable(false);
 
         turnLabel.setText("Saldırı Aşaması - " + gameManager.getCurrentPlayer().getName());
@@ -320,9 +412,9 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         isReinforcementPhase = true;
 
         // Takviye butonunu ve input alanını kapat
-        postAttackInput.clear();
-        postAttackInput.setDisable(true);
-        postAttackButton.setDisable(true);
+//        postAttackInput.clear();
+//        postAttackInput.setDisable(true);
+//        postAttackButton.setDisable(true);
         endAttackButton.setDisable(true);
 
         gameManager.nextTurn();
@@ -397,6 +489,12 @@ public class GameApp extends Application implements PostAttackReinforceListener 
 
     private void handleAttackPhase(Territory territory) {
         System.out.println("==> handleAttackPhase çağrıldı");
+
+        if (mustReinforceAfterConquest) {
+            System.out.println("🔒 Önce fetih sonrası asker aktarımı yapılmalı!");
+            return;
+        }
+
         Player currentPlayer = gameManager.getCurrentPlayer();
 
         // Eğer henüz saldıran ülke seçilmemişse
@@ -420,44 +518,47 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 updateArmyText();
                 resetCircleColors();
 
-                // Eğer işgal gerçekleşmişse (ülkenin sahibi artık currentPlayer ise)
                 if (territory.getOwner() == currentPlayer) {
                     System.out.println("İşgal gerçekleşti: " + territory.getTerritoryName());
-                    gameManager.postAttackReinforce(selectedTerritory, territory);
 
-                    selectedTerritory = territory;
+                    // Fetih sonrası kaynak ve hedefi ayır
+                    lastAttacker = selectedTerritory;
+                    lastConquered = territory;
+
+                    selectedTerritory = lastAttacker;
+                    targetTerritory = lastConquered;
+
+                    gameManager.postAttackReinforce(lastAttacker, lastConquered);
+
                     highlightNeighbors(selectedTerritory);
+                    enablePostAttackControls();
+                    mustReinforceAfterConquest = true;
 
-                    if (canTerritoryAttack(selectedTerritory, currentPlayer)) {
-                        System.out.println("Yeni fethedilen ülke ile saldırıya devam edilebilir.");
-                        isAttackPhase = true;
-                        isReinforcementPhase = false;
-                        isPostAttackReinforcePhase = false;
-                        return;
-                    } else {
-                        System.out.println("Yeni fethedilen ülke ile saldırı yapılamaz. Takviye aşamasına geçiliyor.");
-                        selectedTerritory = null;
-                        isAttackPhase = false;
-                        isPostAttackReinforcePhase = true;
-                        return;
-                    }
-                }
-
-                // Eğer işgal olmadıysa ve saldıran ülkenin ordusu 1'e düştüyse
-                if (selectedTerritory.getArmies() <= 1) {
-                    System.out.println("Saldıran ülkenin ordusu 1'e düştü. Saldırı sona eriyor.");
-                    handleEndAttackPhase();
                     return;
                 }
 
-                // Saldırı başarısız ama saldıran ülke hala saldırabilir
+
+                // Eğer işgal olmadıysa ve saldıran ülkenin ordusu 1'e düştüyse
+                if (selectedTerritory.getArmies() <= 1) {
+                    System.out.println("Saldıran ülkenin ordusu 1'e düştü. Bu ülke pasif hale geldi.");
+                    selectedTerritory = null;
+                    resetCircleColors();
+
+                    if (!hasAnyAttackCapableTerritory(currentPlayer)) {
+                        System.out.println("Saldıracak başka ülke kalmadı. Tur bitiriliyor.");
+                        handleEndAttackPhase();
+                    }
+
+                    return;
+                }
+
+                // Saldırı başarısız ama başka deneme olabilir
                 selectedTerritory = null;
             } else {
                 System.out.println("Hedef ülke geçersiz veya saldırı yapılamaz.");
             }
         }
     }
-
 
 
     private void handleEndAttackPhase() {
@@ -472,9 +573,12 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         isReinforcementPhase = false;
         isPostAttackReinforcePhase = false;
 
-        postAttackInput.clear();
-        postAttackInput.setDisable(true);
-        postAttackButton.setDisable(true);
+//        postAttackInput.clear();
+//        postAttackInput.setDisable(true);
+//        postAttackButton.setDisable(true);
+        endAttackButton.setDisable(true);
+        endAttackButton.setVisible(false); // Eğer kullanıyorsan
+
 
         // Sıradaki oyuncuya geç
         gameManager.nextTurn();
@@ -537,6 +641,11 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      */
     private void highlightNeighbors(Territory selected) {
         Player currentPlayer = gameManager.getCurrentPlayer(); // Mevcut oyuncuyu al
+
+        if (selected.getArmies() <= 1) {
+            System.out.println("Bu ülkenin saldırı yapacak ordusu yok.");
+            return; // hiç highlight yapma
+        }
 
         for (Territory neighbor : selected.getNeighbors()) {
             System.out.println("Komşu: " + neighbor.getTerritoryName() +
@@ -602,4 +711,81 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         return t.getNeighbors().stream()
                 .anyMatch(n -> n.getOwner() != p);
     }
+
+    private boolean hasAnyAttackCapableTerritory(Player player) {
+        return player.getOwnedTerritories().stream()
+                .anyMatch(t -> canTerritoryAttack(t, player));
+    }
+
+    private void promptAttackStartSelection() {
+        endAttackButton.setDisable(false);
+        endAttackButton.setVisible(true);
+
+        System.out.println("Takviye tamamlandı, saldırı için ülkenizi seçin.");
+
+        turnLabel.setText("Takviye tamamlandı, saldırı için ülkenizi seçin.");
+
+        Player currentPlayer = gameManager.getCurrentPlayer();
+
+        for (Territory territory : gameManager.getTerritories()) {
+            Circle circle = getCircleByTerritory(territory);
+            if (circle != null) {
+                if (territory.getOwner() == currentPlayer) {
+                    if (canTerritoryAttack(territory, currentPlayer)) {
+                        circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.RED : Color.BLUE);
+                    } else {
+                        circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.DARKRED : Color.DARKBLUE);
+                    }
+
+                }
+            }
+        }
+
+        // Artık kullanıcı ülkesini seçene kadar saldırı başlamayacak
+        isReinforcementPhase = false;
+        isAttackPhase = true;
+    }
+
+    private void enablePostAttackControls() {
+        if (selectedTerritory == null || targetTerritory == null) {
+            System.out.println("❌ Kontroller aktif edilemedi çünkü selectedTerritory veya targetTerritory null.");
+            return;
+        }
+
+        int maxMove = selectedTerritory.getArmies() - 1;
+
+        if (maxMove < 1) {
+            System.out.println("❌ Takviye yapılacak yeterli ordu yok. Mevcut: " + selectedTerritory.getArmies());
+            return;
+        }
+
+        armiesToMove = 1;
+        moveLabel.setText("Taşınacak Ordu: " + armiesToMove);
+
+        moveLabel.setVisible(true);
+        plusButton.setVisible(true);
+        minusButton.setVisible(true);
+        confirmMoveButton.setVisible(true);
+
+        plusButton.setDisable(false);
+        minusButton.setDisable(false);
+        confirmMoveButton.setDisable(false);
+
+        System.out.println("✅ Takviye alanı aktif. maxMove: " + maxMove);
+    }
+
+
+
+    private void disablePostAttackControls() {
+        moveLabel.setVisible(false);
+        plusButton.setVisible(false);
+        minusButton.setVisible(false);
+        confirmMoveButton.setVisible(false);
+
+        plusButton.setDisable(true);
+        minusButton.setDisable(true);
+        confirmMoveButton.setDisable(true);
+    }
+
+
 }

@@ -1,5 +1,8 @@
 package model;
 
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,21 +40,27 @@ public class GameManager {
     }
 
     public void postAttackReinforce(Territory attacker, Territory conquered) {
-        if (attacker.getArmies() <= 1) {
-            System.out.println("Takviye yapılacak yeterli ordu yok.");
-            isPostAttackReinforcePhase = false;
-            isReinforcementPhase = true; // Saldırı sonrası takviye yapılmadı, doğrudan sıradaki oyuncunun takviyesi
-            return;
-        }
-
         int maxReinforce = attacker.getArmies() - 1;
         System.out.println("Takviye aşaması: " + attacker.getTerritoryName() + " ile " + conquered.getTerritoryName());
         System.out.println(attacker.getTerritoryName() + " ülkesinden " + conquered.getTerritoryName() + " ülkesine " + maxReinforce + " ordu takviyesi yapılabilir.");
 
-        isPostAttackReinforcePhase = true;
         selectedTerritory = attacker;
         targetTerritory = conquered;
+
+        if (maxReinforce < 1) {
+            System.out.println("⚠️ Taşınacak ordu yok. Takviye aşaması atlanıyor.");
+            return;  // asker aktarımı mümkün değil
+        }
+
+        isPostAttackReinforcePhase = true;
+
+        if (postAttackReinforceListener != null) {
+            System.out.println("🧩 postAttackReinforceListener çağrılıyor");
+            postAttackReinforceListener.onPostAttackReinforce(attacker, conquered);
+        }
     }
+
+
 
 
     public void attack(Territory attacker, Territory defender) {
@@ -100,9 +109,10 @@ public class GameManager {
                 if (defender.getArmies() <= 0) {
                     defender.setOwner(attacker.getOwner());
 
-                    int movingArmies = attacker.getArmies() - 1;
-                    attacker.setArmies(1);
-                    defender.setArmies(movingArmies);
+                    // Yalnızca 1 asker otomatik geçsin
+                    attacker.setArmies(attacker.getArmies() - 1);
+                    defender.setArmies(1);
+
 
                     System.out.println(defender.getTerritoryName() + " ele geçirildi!");
                     postAttackReinforce(attacker, defender);
@@ -211,10 +221,12 @@ public class GameManager {
 
         egypt.addNeighbor(northAfrica);
         egypt.addNeighbor(eastAfrica);
+        egypt.addNeighbor(congo);
 
         congo.addNeighbor(northAfrica);
         congo.addNeighbor(eastAfrica);
         congo.addNeighbor(southAfrica);
+        congo.addNeighbor(egypt);
 
         eastAfrica.addNeighbor(egypt);
         eastAfrica.addNeighbor(congo);
@@ -236,23 +248,6 @@ public class GameManager {
         players.add(player2);
     }
 
-    /*public void assignTerritories() {
-        // Kırmızı oyuncuya Venezuela veriliyor
-        players.get(0).addTerritory(territories.get(0));
-        territories.get(0).setOwner(players.get(0));
-
-        // Mavi oyuncuya Brazil ve Argentina veriliyor
-        players.get(1).addTerritory(territories.get(1));
-        territories.get(1).setOwner(players.get(1));
-
-        players.get(1).addTerritory(territories.get(2));
-        territories.get(2).setOwner(players.get(1));
-
-        // Ordu sayıları belirleniyor (1-5 arası rastgele)
-        for (Territory territory : territories) {
-            territory.setArmies(random.nextInt(5) + 1);
-        }
-    }*/
     public void assignTerritories() {
         // Temiz başlangıç
         for (Player player : players) {

@@ -295,6 +295,11 @@ public class GameApp extends Application implements PostAttackReinforceListener 
 
                 System.out.println("✅ Takviye işlemi GameManager üzerinden çağrıldı.");
 
+                if (gameManager.isGameOver()) {
+                    displayGameOver();
+                    return;
+                }
+
                 updateArmyText();
                 resetCircleColors();
                 disablePostAttackControls();
@@ -330,9 +335,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 System.out.println("❌ selectedTerritory veya targetTerritory null!");
             }
         });
-
-
-
 
 
         StackPane root = new StackPane(mapView, content);
@@ -519,6 +521,10 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 resetCircleColors();
 
                 if (territory.getOwner() == currentPlayer) {
+                    if (gameManager.isGameOver()) {
+                        displayGameOver();
+                        return;
+                    }
                     System.out.println("İşgal gerçekleşti: " + territory.getTerritoryName());
 
                     // Fetih sonrası kaynak ve hedefi ayır
@@ -773,7 +779,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
 
         System.out.println("✅ Takviye alanı aktif. maxMove: " + maxMove);
     }
-
 
 
     private void disablePostAttackControls() {

@@ -16,7 +16,7 @@ public class GameManager {
     private Random random;
     private int reinforcementArmy = 0;
     private int tempReinforcement = 0;
-    private boolean isPostAttackReinforcePhase = false;
+   // private boolean isPostAttackReinforcePhase = false;
     private Territory targetTerritory;
     private Territory selectedTerritory;
     private boolean isReinforcementPhase = false;
@@ -41,19 +41,35 @@ public class GameManager {
 
     public void postAttackReinforce(Territory attacker, Territory conquered) {
         int maxReinforce = attacker.getArmies() - 1;
+
         System.out.println("Takviye aşaması: " + attacker.getTerritoryName() + " ile " + conquered.getTerritoryName());
         System.out.println(attacker.getTerritoryName() + " ülkesinden " + conquered.getTerritoryName() + " ülkesine " + maxReinforce + " ordu takviyesi yapılabilir.");
+
+        // 🧠 Fazı GUI tarafına *her halükârda* bildirmeliyiz
+        //isPostAttackReinforcePhase = true;
+
+        // 🧠 Eğer iki tarafta da sadece 1'er ordu varsa, takviye mümkün değildir
+        if (attacker.getArmies() == 1 && conquered.getArmies() == 1) {
+            System.out.println("⚠️ Her iki ülkede 1'er ordu kaldı. Takviye yapılamaz, faz atlanıyor.");
+            if (postAttackReinforceListener != null) {
+                postAttackReinforceListener.onPostAttackReinforce(null, null);
+            }
+            return;
+        }
+
+        // 🧠 Kaynak ülkedeki ordu sayısı 1'in altındaysa da takviye yapılamaz
+        if (maxReinforce < 1) {
+            System.out.println("⚠️ Taşınacak ordu yok. Takviye aşaması atlanıyor.");
+            if (postAttackReinforceListener != null) {
+                postAttackReinforceListener.onPostAttackReinforce(null, null);
+            }
+            return;
+        }
 
         selectedTerritory = attacker;
         targetTerritory = conquered;
 
-        if (maxReinforce < 1) {
-            System.out.println("⚠️ Taşınacak ordu yok. Takviye aşaması atlanıyor.");
-            return;  // asker aktarımı mümkün değil
-        }
-
-        isPostAttackReinforcePhase = true;
-
+        // 🔄 GUI'yi bilgilendir
         if (postAttackReinforceListener != null) {
             System.out.println("🧩 postAttackReinforceListener çağrılıyor");
             postAttackReinforceListener.onPostAttackReinforce(attacker, conquered);

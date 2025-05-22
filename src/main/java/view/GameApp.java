@@ -35,6 +35,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
     private Territory targetTerritory = null;
     private Button endAttackButton;
     private boolean mustReinforceAfterConquest = false;
+    private Player currentPlayer;
 
     private Button plusButton;
     private Button minusButton;
@@ -48,7 +49,38 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      */
     @Override
     public void onPostAttackReinforce(Territory attacker, Territory conquered) {
-        System.out.println("Saldırı sonrası takviye işlemi başlatıldı.");
+        isPostAttackReinforcePhase = true;
+        mustReinforceAfterConquest = true;
+
+        if (attacker == null || conquered == null) {
+            System.out.println("🔕 Takviye yapılmayacak, çünkü hem attacker hem conquered 1'er orduya sahipti.");
+
+            // 🔒 Gerekli resetlemeleri ZAMANINDA yap
+            disablePostAttackControls();
+            selectedTerritory = null;
+            targetTerritory = null;
+            armiesToMove = 1;
+
+            mustReinforceAfterConquest = false;
+            isPostAttackReinforcePhase = false;
+
+            // ✅ currentPlayer değişkeni yerine doğrudan çağır
+            if (hasAnyAttackCapableTerritory(gameManager.getCurrentPlayer())) {
+                System.out.println("🔁 Saldırıya devam edilebilir. Ülke seçimi bekleniyor...");
+                promptAttackStartSelection();
+                isAttackPhase = true;
+                isReinforcementPhase = false;
+            } else {
+                System.out.println("🔚 Saldıracak başka ülke yok. Tur bitiyor.");
+                handleEndAttackPhase();
+            }
+
+            return;
+        }
+
+        // 🧠 Takviye yapılabiliyor
+        isPostAttackReinforcePhase = true;
+        mustReinforceAfterConquest = true;
         handlePostAttackReinforce(attacker, conquered);
     }
 
@@ -56,6 +88,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         System.out.println("🧩 handlePostAttackReinforce çağrıldı");
         System.out.println("🧩 from: " + (from != null ? from.getTerritoryName() : "null"));
         System.out.println("🧩 to: " + (to != null ? to.getTerritoryName() : "null"));
+
         if (!isPostAttackReinforcePhase) {
             System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
             return;
@@ -66,7 +99,9 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             return;
         }
 
-        if (from.getOwner() != gameManager.getCurrentPlayer() || to.getOwner() != gameManager.getCurrentPlayer()) {
+        Player currentPlayer = gameManager.getCurrentPlayer();  // 🔄 Her zaman güncel oyuncuyu al
+
+        if (from.getOwner() != currentPlayer || to.getOwner() != currentPlayer) {
             System.out.println("Sadece kendi ülkeleriniz arasında takviye yapabilirsiniz.");
             return;
         }
@@ -84,64 +119,16 @@ public class GameApp extends Application implements PostAttackReinforceListener 
 
         enablePostAttackControls();
 
-        System.out.println("🟢 " + from.getTerritoryName() + " ülkesinden " + to.getTerritoryName() + " ülkesine takviye yapabilirsiniz.");
+        System.out.println("🟢 " + from.getTerritoryName() + " ülkesinden " +
+                to.getTerritoryName() + " ülkesine takviye yapabilirsiniz.");
     }
-
-
-//    private void executePostAttackReinforce(Territory from, Territory to) {
-//        if (!isPostAttackReinforcePhase) {
-//            System.out.println("Saldırı sonrası takviye aşamasında değilsiniz.");
-//            return;
-//        }
-//
-//        if (from == null || to == null) {
-//            System.out.println("Takviye yapılacak ülkeler seçilmedi.");
-//            return;
-//        }
-//
-//        try {
-//            int armiesToSend = Integer.parseInt(postAttackInput.getText());
-//
-//            if (armiesToSend < 1 || armiesToSend >= from.getArmies()) {
-//                System.out.println("Takviye için geçersiz sayı.");
-//                return;
-//            }
-//
-//            gameManager.reinforceBetweenTerritories(from, to, armiesToSend);
-//
-//            updateArmyText();
-//            resetCircleColors();
-//
-//            selectedTerritory = null;
-//            targetTerritory = null;
-//
-//            postAttackInput.clear();
-//            postAttackInput.setDisable(true);
-//            postAttackButton.setDisable(true);
-//
-//            // Saldırı sonrası takviye aşaması sona erdi
-//            isPostAttackReinforcePhase = false;
-//
-//            // Mavi oyuncunun takviye aşamasına geçiş
-//            gameManager.nextTurn();
-//            Player nextPlayer = gameManager.getCurrentPlayer();
-//            turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
-//            reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
-//            armyInput.setDisable(false);
-//            armyInput.clear();
-//
-//            isReinforcementPhase = true; // Mavi oyuncunun takviye aşaması başlıyor
-//            System.out.println(nextPlayer.getName() + " oyuncusu takviye aşamasında.");
-//
-//        } catch (NumberFormatException ex) {
-//            System.out.println("Geçerli bir sayı girin.");
-//        }
-//    }
-
 
     @Override
     public void start(Stage primaryStage) {
+
         gameManager = GameManager.getInstance();
+        currentPlayer = gameManager.getCurrentPlayer();
+
         gameManager.setPostAttackReinforceListener(this::handlePostAttackReinforce);
         content = new Pane();
 
@@ -151,12 +138,10 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         mapView.setFitHeight(768);
         mapView.setPreserveRatio(true);
 
-        turnLabel = new Text("Sıra: " + gameManager.getCurrentPlayer().getName());
+        turnLabel = new Text("Sıra: " + currentPlayer.getName());
         turnLabel.setX(10);
         turnLabel.setY(20);
         content.getChildren().add(turnLabel);
-
-        //Player currentPlayer = gameManager.getCurrentPlayer();
 
         reinforcementLabel = new Label("Kalan Takviye: " + gameManager.getTempReinforcement());
         reinforcementLabel.setLayoutX(10);
@@ -197,7 +182,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         confirmMoveButton.setVisible(false);
         content.getChildren().add(confirmMoveButton);
 
-        Player currentPlayer = gameManager.getCurrentPlayer();
         // Oyuncunun sadece 1 ülkesi varsa takviye yapamaz
         if (currentPlayer.getOwnedTerritories().size() == 1) {
             armyInput.setDisable(true);
@@ -212,14 +196,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
         }
 
-//        // Burada postAttackButton'un aksiyonunu tanımlıyoruz
-//        postAttackButton.setOnAction(event -> {
-//            if (selectedTerritory != null && targetTerritory != null) {
-//                executePostAttackReinforce(selectedTerritory, targetTerritory);
-//            } else {
-//                System.out.println("Takviye yapılacak hedef ülke seçilmedi veya geçersiz seçim.");
-//            }
-//        });
         // Saldırıyı Bitir Butonu
         endAttackButton = new Button("Saldırıyı Bitir");
         endAttackButton.setLayoutX(300);
@@ -283,7 +259,10 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         });
 
 
+
+
         confirmMoveButton.setOnAction(e -> {
+            currentPlayer = gameManager.getCurrentPlayer();
             System.out.println("🎯 Onayla butonuna basıldı");
 
             if (selectedTerritory != null && targetTerritory != null) {
@@ -292,7 +271,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 System.out.println("Taşınacak ordu: " + armiesToMove);
 
                 gameManager.reinforceBetweenTerritories(selectedTerritory, targetTerritory, armiesToMove);
-
                 System.out.println("✅ Takviye işlemi GameManager üzerinden çağrıldı.");
 
                 if (gameManager.isGameOver()) {
@@ -305,24 +283,24 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                 disablePostAttackControls();
 
                 mustReinforceAfterConquest = false;
-
-                selectedTerritory = null;
-                targetTerritory = null;
                 armiesToMove = 1;
 
-                // 🧠 Şimdi sıradaki hamle: tekrar saldırabilir mi?
-                if (hasAnyAttackCapableTerritory(gameManager.getCurrentPlayer())) {
+                if (hasAnyAttackCapableTerritory(currentPlayer)) {
                     System.out.println("🔁 Saldırıya devam edilebilir. Ülke seçimi bekleniyor...");
-                    promptAttackStartSelection();  // saldırı fazına geri dön
+                    selectedTerritory = null;
+                    targetTerritory = null;
+
+                    promptAttackStartSelection();
                     isReinforcementPhase = false;
                     isAttackPhase = true;
-                } else {
-                    // Eğer saldıracak ülke yoksa sıradaki oyuncuya geç
+                }else {
+                    System.out.println("📴 Saldıracak ülke kalmadı. Tur geçiliyor.");
+                    selectedTerritory = null;
+                    targetTerritory = null;
+
                     gameManager.nextTurn();
                     Player nextPlayer = gameManager.getCurrentPlayer();
                     gameManager.startReinforcementPhase(nextPlayer);
-
-                    System.out.println("🛑 Saldırı bitti. Yeni oyuncu: " + nextPlayer.getName());
 
                     turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
                     reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
@@ -349,7 +327,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      */
     private void handleReinforcementPhase(Territory territory, Text armyText) {
         System.out.println("==> handleReinforcementPhase çağrıldı");
-        Player currentPlayer = gameManager.getCurrentPlayer();
 
         if (territory.getOwner() != currentPlayer) {
             System.out.println("Bu ülke size ait değil, takviye yapamazsınız.");
@@ -373,7 +350,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             if (gameManager.getTempReinforcement() == 0) {
                 isReinforcementPhase = false;
 
-                currentPlayer = gameManager.getCurrentPlayer();
+                // ❌ GEREKSİZ: currentPlayer = gameManager.getCurrentPlayer();
 
                 if (!hasAnyAttackCapableTerritory(currentPlayer)) {
                     System.out.println("Saldırı yapabilecek ülke yok, sıra geçiyor.");
@@ -388,6 +365,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         }
     }
 
+
     /**
      * Saldırı aşamasının başlatılması.
      */
@@ -397,12 +375,10 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         selectedTerritory = null;
         targetTerritory = null;
 
-//        postAttackInput.clear();
-//        postAttackInput.setDisable(true);
-//        postAttackButton.setDisable(true);
         endAttackButton.setDisable(false);
 
-        turnLabel.setText("Saldırı Aşaması - " + gameManager.getCurrentPlayer().getName());
+        currentPlayer = gameManager.getCurrentPlayer();  // 🧠 Global değişkeni güncelle
+        turnLabel.setText("Saldırı Aşaması - " + currentPlayer.getName());
         System.out.println("Saldırı aşamasına geçildi.");
     }
 
@@ -497,7 +473,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
             return;
         }
 
-        Player currentPlayer = gameManager.getCurrentPlayer();
+        currentPlayer = gameManager.getCurrentPlayer();
 
         // Eğer henüz saldıran ülke seçilmemişse
         if (selectedTerritory == null) {
@@ -537,7 +513,7 @@ public class GameApp extends Application implements PostAttackReinforceListener 
                     gameManager.postAttackReinforce(lastAttacker, lastConquered);
 
                     highlightNeighbors(selectedTerritory);
-                    enablePostAttackControls();
+
                     mustReinforceAfterConquest = true;
 
                     return;
@@ -570,31 +546,28 @@ public class GameApp extends Application implements PostAttackReinforceListener 
     private void handleEndAttackPhase() {
         System.out.println("Saldırı aşaması manuel olarak sonlandırıldı.");
 
+        mustReinforceAfterConquest = false;
+        isPostAttackReinforcePhase = false;
+
         selectedTerritory = null;
         targetTerritory = null;
 
         endAttackButton.setDisable(true);
+        endAttackButton.setVisible(false);
 
         isAttackPhase = false;
         isReinforcementPhase = false;
         isPostAttackReinforcePhase = false;
 
-//        postAttackInput.clear();
-//        postAttackInput.setDisable(true);
-//        postAttackButton.setDisable(true);
-        endAttackButton.setDisable(true);
-        endAttackButton.setVisible(false); // Eğer kullanıyorsan
-
-
         // Sıradaki oyuncuya geç
         gameManager.nextTurn();
-        Player nextPlayer = gameManager.getCurrentPlayer();
+        currentPlayer = gameManager.getCurrentPlayer(); // ✅ BURASI EKLENDİ
 
-        if (nextPlayer.getOwnedTerritories().size() == 1) {
-            System.out.println(nextPlayer.getName() + " sadece 1 ülkeye sahip, takviye aşaması atlanıyor.");
+        if (currentPlayer.getOwnedTerritories().size() == 1) {
+            System.out.println(currentPlayer.getName() + " sadece 1 ülkeye sahip, takviye aşaması atlanıyor.");
             startAttackPhase();
         } else {
-            System.out.println("Takviye aşamasına geçiliyor: " + nextPlayer.getName());
+            System.out.println("Takviye aşamasına geçiliyor: " + currentPlayer.getName());
             reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
             armyInput.setDisable(false);
             isReinforcementPhase = true;
@@ -646,8 +619,6 @@ public class GameApp extends Application implements PostAttackReinforceListener 
      * Saldıran ülkenin komşu düşmanlarını sarı renkle vurgular.
      */
     private void highlightNeighbors(Territory selected) {
-        Player currentPlayer = gameManager.getCurrentPlayer(); // Mevcut oyuncuyu al
-
         if (selected.getArmies() <= 1) {
             System.out.println("Bu ülkenin saldırı yapacak ordusu yok.");
             return; // hiç highlight yapma
@@ -728,21 +699,18 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         endAttackButton.setVisible(true);
 
         System.out.println("Takviye tamamlandı, saldırı için ülkenizi seçin.");
-
         turnLabel.setText("Takviye tamamlandı, saldırı için ülkenizi seçin.");
 
-        Player currentPlayer = gameManager.getCurrentPlayer();
+        // 🔁 Oyuncu değişmiş olabilir, güncelle
+        currentPlayer = gameManager.getCurrentPlayer();
 
         for (Territory territory : gameManager.getTerritories()) {
             Circle circle = getCircleByTerritory(territory);
-            if (circle != null) {
-                if (territory.getOwner() == currentPlayer) {
-                    if (canTerritoryAttack(territory, currentPlayer)) {
-                        circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.RED : Color.BLUE);
-                    } else {
-                        circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.DARKRED : Color.DARKBLUE);
-                    }
-
+            if (circle != null && territory.getOwner() == currentPlayer) {
+                if (canTerritoryAttack(territory, currentPlayer)) {
+                    circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.RED : Color.BLUE);
+                } else {
+                    circle.setFill(currentPlayer.getName().equals("Kırmızı") ? Color.DARKRED : Color.DARKBLUE);
                 }
             }
         }
@@ -792,5 +760,30 @@ public class GameApp extends Application implements PostAttackReinforceListener 
         confirmMoveButton.setDisable(true);
     }
 
+    public void skipPostAttackPhaseDueToInsufficientArmies() {
+        System.out.println("🔁 Takviye yapılamadı, sıradaki hamleye geçiliyor.");
+
+        mustReinforceAfterConquest = false;
+        disablePostAttackControls();
+        selectedTerritory = null;
+        targetTerritory = null;
+        armiesToMove = 1;
+
+        if (hasAnyAttackCapableTerritory(gameManager.getCurrentPlayer())) {
+            promptAttackStartSelection();
+            isAttackPhase = true;
+            isReinforcementPhase = false;
+        } else {
+            gameManager.nextTurn();
+            Player nextPlayer = gameManager.getCurrentPlayer();
+            gameManager.startReinforcementPhase(nextPlayer);
+
+            turnLabel.setText("Takviye Aşaması - " + nextPlayer.getName());
+            reinforcementLabel.setText("Kalan Takviye: " + gameManager.getTempReinforcement());
+            armyInput.setDisable(false);
+            isReinforcementPhase = true;
+            isAttackPhase = false;
+        }
+    }
 
 }
